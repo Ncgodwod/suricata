@@ -390,7 +390,7 @@ napatech:
   auto-config: yes
   ports: [all]
   hashmode: hash5tuplesorted
-  default-rule-path: /var/lib/suricata/rules
+default-rule-path: /var/lib/suricata/rules
 rule-files:
   - suricata.rules
 classification-file: /etc/suricata/classification.config
