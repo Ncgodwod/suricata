@@ -16,7 +16,7 @@ vars:
 
 default-log-dir: /var/log/suricata/
 stats:
-  enabled: no
+  enabled: yes
   interval: 8
 outputs:
   - fast:
