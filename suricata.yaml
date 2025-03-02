@@ -55,7 +55,7 @@ outputs:
         - nfs
         - smb
         - tftp
-        - ikev2
+        - ike
         - krb5
         - snmp
         - dhcp:
