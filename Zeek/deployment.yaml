@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "zeek.fullname" . }}
+  namespace: zeek
+  labels:
+    {{- include "zeek.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "zeek.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "zeek.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "zeek.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - "/bin/bash"
+            - "-c"
+            - |
+              cp /zeek-config/local.zeek /opt/zeek/share/zeek/site/local.zeek
+              cp /zeek-config/node.cfg /opt/zeek/etc/node.cfg
+              cp /zeek-config/zeekctl.cfg /opt/zeek/etc/zeekctl.cfg
+              /opt/zeek/bin/zeekctl deploy
+              tail -f /opt/zeek/logs/current/stderr.log
+          ports:
+            - name: zeek
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+                - /bin/bash
+                - -c
+                - "ps aux | grep -v grep | grep -q zeek-worker"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - /bin/bash
+                - -c
+                - "ps aux | grep -v grep | grep -q zeek-worker"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: zeek-config
+              mountPath: /zeek-config
+            - name: zeek-logs
+              mountPath: /var/log/zeek/
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: zeek-config
+          configMap:
+            name: {{ include "zeek.fullname" . }}-config
+        - name: zeek-logs
+        {{- if .Values.zeek.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "zeek.fullname" . }}-logs
+        {{- else }}
+          emptyDir: {}
+        {{- end }}
+

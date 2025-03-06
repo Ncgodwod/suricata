@@ -1,0 +1,70 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: zeek/zeek
+  pullPolicy: IfNotPresent
+  tag: "7.1.0"
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: "zeek-svc"
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  capabilities:
+    add:
+      - NET_ADMIN
+      - NET_RAW
+  runAsNonRoot: false
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 47761
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+zeek:
+  interface: "eth19"
+  # Log rotation interval in seconds
+  logRotationInterval: 3600
+  jsonLogging: true
+  additionalScripts: []
+  # Zeek worker count (0 means auto-detect based on CPU cores)
+  workerCount: 0
+  # Persistent storage for logs
+  persistence:
+    enabled: true
+    storageClass: ""
+    size: 50Gi
+    accessMode: ReadWriteOnce
+  # Configure log forwarding
+  logForwarding:
+    enabled: false
+    type: "elasticsearch"
+    elasticsearch:
+      host: "elasticsearch:9200"
+      index: "zeek-logs"
+    syslog:
+      server: "syslog-server:514"
+      protocol: "udp" # tcp or udp
+

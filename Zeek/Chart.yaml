@@ -1,0 +1,9 @@
+apiVersion: v2
+name: zeek
+description: A Helm chart for deploying Zeek network security monitor on Kubernetes
+type: application
+version: 0.1.0
+appVersion: "7.1.0"
+maintainers:
+  - name: Nicholas Godwod
+    email: ncgodwod@secone.org

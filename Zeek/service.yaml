@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "zeek.fullname" . }}
+  namespace: zeek
+  labels:
+    {{- include "zeek.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: zeek
+      protocol: TCP
+      name: zeek
+  selector:
+    {{- include "zeek.selectorLabels" . | nindent 4 }}

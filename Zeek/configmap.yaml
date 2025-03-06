@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "zeek.fullname" . }}-config
+  namespace: zeek
+  labels:
+    {{- include "zeek.labels" . | nindent 4 }}
+data:
+  local.zeek: |
+    # Add custom configurations here
+    redef LogAscii::use_json = {{ .Values.zeek.jsonLogging }};
+    redef Log::default_rotation_interval = {{ .Values.zeek.logRotationInterval }} secs;
+    
+    {{- if .Values.zeek.logForwarding.enabled }}
+    {{- if eq .Values.zeek.logForwarding.type "elasticsearch" }}
+    @load elasticsearch
+    redef Elasticsearch::server = "{{ .Values.zeek.logForwarding.elasticsearch.host }}";
+    redef Elasticsearch::index_name = "{{ .Values.zeek.logForwarding.elasticsearch.index }}";
+    {{- end }}
+    {{- if eq .Values.zeek.logForwarding.type "syslog" }}
+    @load syslog
+    redef Syslog::server = "{{ .Values.zeek.logForwarding.syslog.server }}";
+    redef Syslog::protocol = "{{ .Values.zeek.logForwarding.syslog.protocol }}";
+    {{- end }}
+    {{- end }}
+    
+    {{- range .Values.zeek.additionalScripts }}
+    @load {{ . }}
+    {{- end }}
+  
+  node.cfg: |
+    [logger]
+    type=logger
+    host=localhost
+
+    [manager]
+    type=manager
+    host=localhost
+
+    {{- if gt (int .Values.zeek.workerCount) 0 }}
+    {{- range $i, $e := until (int .Values.zeek.workerCount) }}
+    [worker-{{ $i }}]
+    type=worker
+    host=localhost
+    interface={{ $.Values.zeek.interface }}
+    {{- end }}
+    {{- else }}
+    [worker-0]
+    type=worker
+    host=localhost
+    interface={{ .Values.zeek.interface }}
+    {{- end }}
+
+  zeekctl.cfg: |
+    # Mail Options
+    MailTo = 
+    SendMail = /usr/sbin/sendmail
+    MailFrom = zeek@localhost
+    MailSubjectPrefix = [Zeek]
+
+    # Logging Options
+    LogDir = /var/log/zeek/
+    LogExpireInterval = 0
+    LogRotationInterval = {{ .Values.zeek.logRotationInterval }}
+    StatsLogEnable = 1
+    StatsLogExpireInterval = 0
+    StatsLogInterval = 43200
+
+    # Cluster Configuration
+    PFRingClusterID = 99
+    PFRingClusterType = cluster_flow
+    PFRingFirstCore = 0
+    PFRingResetInterface = 0
+
